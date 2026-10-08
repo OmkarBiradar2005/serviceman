@@ -1,20 +1,25 @@
 import axios from 'axios';
 
-// Create axios instance
+// Create Axios instance
 const axiosInstance = axios.create({
-  baseURL: '/api',
+  // Use Render backend URL in production through Vercel environment variable
+  // Falls back to /api for local development if the variable is not set
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Request interceptor to add token
+// Request interceptor to add JWT token
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => {
@@ -24,14 +29,18 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor to handle errors
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
+    // If token is expired or unauthorized
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
       window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );
